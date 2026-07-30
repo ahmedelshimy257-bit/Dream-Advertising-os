@@ -1,0 +1,151 @@
+name: Dream Advertising OS - System Test
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  runtime-structure-test:
+    name: Runtime Structure Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify core architecture
+        shell: bash
+        run: |
+          set -e
+
+          required_files=(
+            "runtime/ARCHITECTURE.md"
+            "runtime/BOOT_SEQUENCE.md"
+            "runtime/CONSTITUTION_LOADER.md"
+            "runtime/EXECUTIVE_BOARD_LOADER.md"
+            "runtime/COGNITIVE_ENGINES_LOADER.md"
+            "runtime/WORKFLOW_ENGINE.md"
+            "runtime/QUALITY_GATE.md"
+            "runtime/REPORT_GENERATOR.md"
+            "runtime/DEPARTMENTS.md"
+          )
+
+          echo "Checking required runtime files..."
+
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "FAIL: Missing $file"
+              exit 1
+            fi
+
+            echo "PASS: $file"
+          done
+
+      - name: Verify Constitution chapters
+        shell: bash
+        run: |
+          set -e
+
+          for chapter in {02..10}; do
+            matches=$(find runtime -maxdepth 2 -type f \
+              -name "CONSTITUTION_CH${chapter}_*.md" \
+              | wc -l)
+
+            if [ "$matches" -eq 0 ]; then
+              echo "FAIL: Constitution Chapter $chapter not found"
+              exit 1
+            fi
+
+            echo "PASS: Constitution Chapter $chapter"
+          done
+
+      - name: Detect nested runtime directory
+        shell: bash
+        run: |
+          if [ -d "runtime/runtime" ]; then
+            echo "WARNING: Nested runtime/runtime directory detected."
+            echo "This is a structural issue and should be reviewed."
+          else
+            echo "PASS: No nested runtime directory."
+          fi
+
+      - name: Detect duplicate runtime files
+        shell: bash
+        run: |
+          echo "Checking for duplicate filenames..."
+
+          find runtime -type f -name "*.md" \
+            -printf "%f\n" | sort | uniq -d > /tmp/duplicates.txt
+
+          if [ -s /tmp/duplicates.txt ]; then
+            echo "WARNING: Duplicate filenames detected:"
+            cat /tmp/duplicates.txt
+          else
+            echo "PASS: No duplicate Markdown filenames detected."
+          fi
+
+      - name: Verify runtime files are not empty
+        shell: bash
+        run: |
+          set -e
+
+          while IFS= read -r file; do
+            if [ ! -s "$file" ]; then
+              echo "FAIL: Empty runtime file: $file"
+              exit 1
+            fi
+          done < <(find runtime -type f -name "*.md")
+
+          echo "PASS: Runtime Markdown files are non-empty."
+
+      - name: Runtime boot dependency check
+        shell: bash
+        run: |
+          set -e
+
+          required_references=(
+            "ARCHITECTURE.md"
+            "CONSTITUTION_LOADER.md"
+            "EXECUTIVE_BOARD_LOADER.md"
+            "COGNITIVE_ENGINES_LOADER.md"
+            "DEPARTMENTS.md"
+            "WORKFLOW_ENGINE.md"
+            "QUALITY_GATE.md"
+            "REPORT_GENERATOR.md"
+          )
+
+          for reference in "${required_references[@]}"; do
+            if ! grep -Rqs "$reference" runtime --include="*.md"; then
+              echo "FAIL: Runtime reference not found: $reference"
+              exit 1
+            fi
+
+            echo "PASS: Reference found: $reference"
+          done
+
+      - name: System test summary
+        shell: bash
+        run: |
+          echo ""
+          echo "========================================"
+          echo " DREAM ADVERTISING OS SYSTEM TEST"
+          echo "========================================"
+          echo ""
+          echo "Architecture: CHECKED"
+          echo "Constitution: CHECKED"
+          echo "Executive Board: CHECKED"
+          echo "Cognitive Engines: CHECKED"
+          echo "Departments: CHECKED"
+          echo "Workflow: CHECKED"
+          echo "Quality Gate: CHECKED"
+          echo "Report Generator: CHECKED"
+          echo ""
+          echo "STATUS: STRUCTURAL TEST COMPLETED"
+          echo "========================================"
