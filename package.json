@@ -1,0 +1,11 @@
+{
+  "name": "dream-advertising-os-runtime-foundation",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node packages/intelligence-runtime/test/runtime.test.js",
+    "start": "node apps/api/src/server.js"
+  }
+}
+
